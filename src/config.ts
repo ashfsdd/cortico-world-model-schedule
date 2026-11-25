@@ -6,14 +6,17 @@
 import type { ConfigGroup } from 'cortico/core/types.ts';
 
 /**
- * 默认规则（一天四班）：
- *   02:00 下播 → 千帆 + 群消息切回 hybrid（省 token）
- *   08:00 白天 → 北辰（顺手确认 hybrid）
- *   20:00 开播前 → 群消息切 passive（全实时，她能主动接话）
- *   22:00 开播   → 千帆（闲时 2 折）
+ * 默认规则（一天四班，示例）：
+ *   02:00 → 群消息切回 hybrid（省 token），换到低峰供应商
+ *   08:00 → 换回主力供应商
+ *   20:00 → 群消息切 passive（全实时，能主动接话）
+ *   22:00 → 再切低峰供应商
+ *
+ * ⚠️ `provider` 必须填你自己环境里的供应商名（`GET /api/providers` 能看到），
+ *    示例留空表示「只改窗口、不换供应商」，装完按需补。
  *
  * ⚠️ 窗口统一写 131072（模型原生上限），不要往下压。
- * 2026-11-14 实测：系统提示词 + 116 个工具 schema + 记忆注入 ≈ 7 万 token，
+ * 实测：系统提示词 + 100 多个工具 schema + 记忆注入 ≈ 7 万 token，
  * 压到 40000 会让 hardTokens（= 窗口 - maxTokens）= 38464，比实际占用还小，
  * 每轮都触发强制交接（= 失忆）。省 token 要靠缓存和精简工具，不是压窗口。
  *
@@ -22,15 +25,11 @@ import type { ConfigGroup } from 'cortico/core/types.ts';
 export const DEFAULT_RULES = [
   {
     at: '02:00',
-    provider: 'qianfan',
-    context: { qianfan: 131072 },
     set: { 'worlds.qqbot.receiveMode': 'hybrid' },
     restart: ['qqbot'],
   },
   {
     at: '08:00',
-    provider: 'beichen',
-    context: { qianfan: 131072 },
     set: { 'worlds.qqbot.receiveMode': 'hybrid' },
     restart: ['qqbot'],
   },
@@ -41,8 +40,8 @@ export const DEFAULT_RULES = [
   },
   {
     at: '22:00',
-    provider: 'qianfan',
-    context: { qianfan: 131072 },
+    set: { 'worlds.qqbot.receiveMode': 'passive' },
+    restart: ['qqbot'],
   },
 ];
 
