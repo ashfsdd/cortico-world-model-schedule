@@ -53,3 +53,49 @@ test('默认配置：rulesJson 能被 JSON.parse，且内容与 DEFAULT_RULES �
     assert.equal(parsed[i].at, DEFAULT_RULES[i].at);
   }
 });
+
+// ── 规则校验（2026-11-26 加）──────────────────────────────────
+
+import { ModelScheduleWorld } from '../src/index.ts';
+
+const mkWorld = () => new ModelScheduleWorld({ cfg: {} });
+const validate = (raw: string) => (mkWorld() as any).validateRules(raw);
+
+test('校验：JSON 语法错能指出', () => {
+  const r = validate('{ bad json');
+  assert.equal(r.rules.length, 0);
+  assert.match(r.issues[0], /JSON 语法错误/);
+});
+
+test('校验：顶层非数组', () => {
+  const r = validate('{"at":"22:00"}');
+  assert.match(r.issues[0], /必须是数组/);
+});
+
+test('校验：缺 at 指出第几条', () => {
+  const r = validate('[{"provider":"qianfan"}]');
+  assert.match(r.issues[0], /第 1 条缺 at/);
+});
+
+test('校验：at 格式错', () => {
+  const r = validate('[{"at":"22点"}]');
+  assert.match(r.issues[0], /格式不对/);
+});
+
+test('校验：at 超范围', () => {
+  const r = validate('[{"at":"25:00"}]');
+  assert.match(r.issues[0], /超出范围/);
+});
+
+test('校验：正常规则无 issue', () => {
+  const r = validate('[{"at":"22:00","provider":"qianfan"}]');
+  assert.equal(r.issues.length, 0);
+  assert.equal(r.rules.length, 1);
+  assert.equal(r.rules[0].at, '22:00');
+});
+
+test('校验：set 类型不对会提示，但规则仍保留', () => {
+  const r = validate('[{"at":"02:00","set":[]}]');
+  assert.match(r.issues[0], /set 应该是对象/);
+  assert.equal(r.rules.length, 1);
+});

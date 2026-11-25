@@ -237,24 +237,57 @@ export class ModelScheduleWorld {
     setTimeout(() => { void this.tick(); }, 800);
   }
 
+  /**
+   * 校验并解析规则。返回可用的规则 + 逐条问题清单。
+   *
+   * 为什么要单独返回 issues：以前 JSON 写错只记一条日志，用户在面板上看不到；
+   * 规则格式不对会被静默丢掉，表现为「到点没生效」但不知道哪条坏了。
+   */
+  private validateRules(raw: string): { rules: Rule[]; issues: string[] } {
+    const issues: string[] = [];
+    let arr: unknown;
+    try {
+      arr = JSON.parse(String(raw || '[]'));
+    } catch (e: any) {
+      return { rules: [], issues: [`JSON 语法错误：${String(e?.message || e).slice(0, 120)}`] };
+    }
+    if (!Array.isArray(arr)) {
+      return { rules: [], issues: ['顶层必须是数组（形如 [ {...}, {...} ]）'] };
+    }
+    const rules: Rule[] = [];
+    arr.forEach((r: any, i: number) => {
+      const n = i + 1;
+      if (!r || typeof r !== 'object') { issues.push(`第 ${n} 条不是对象，已跳过`); return; }
+      const at = String(r.at ?? '').trim();
+      if (!at) { issues.push(`第 ${n} 条缺 at（时刻，形如 "22:00"）`); return; }
+      if (!/^\d{2}:\d{2}$/.test(at)) { issues.push(`第 ${n} 条的 at「${at}」格式不对，应为 HH:MM`); return; }
+      const [hh, mm] = at.split(':').map(Number);
+      if (hh > 23 || mm > 59) { issues.push(`第 ${n} 条的 at「${at}」超出范围（00:00–23:59）`); return; }
+      if (r.set !== undefined && (typeof r.set !== 'object' || r.set === null || Array.isArray(r.set))) {
+        issues.push(`第 ${n} 条的 set 应该是对象（如 {"worlds.qqbot.receiveMode":"hybrid"}）`);
+      }
+      if (r.context !== undefined && (typeof r.context !== 'object' || r.context === null || Array.isArray(r.context))) {
+        issues.push(`第 ${n} 条的 context 应该是对象（如 {"qianfan":131072}）`);
+      }
+      if (r.restart !== undefined && !Array.isArray(r.restart)) {
+        issues.push(`第 ${n} 条的 restart 应该是数组（如 ["qqbot"]）`);
+      }
+      rules.push({
+        at,
+        provider: r.provider ? String(r.provider) : '',
+        context: (r.context && typeof r.context === 'object' && !Array.isArray(r.context)) ? r.context : {},
+        set: (r.set && typeof r.set === 'object' && !Array.isArray(r.set)) ? r.set : {},
+        restart: Array.isArray(r.restart) ? r.restart.map((x: any) => String(x)) : [],
+      });
+    });
+    return { rules, issues };
+  }
+
   private parseRules(cfg?: Record<string, any>): Rule[] {
     const src = cfg ?? this.liveCfg();
-    try {
-      const arr = JSON.parse(String(src.rulesJson || '[]'));
-      if (!Array.isArray(arr)) return [];
-      return arr
-        .filter((r) => r && /^\d{2}:\d{2}$/.test(String(r.at ?? '')))
-        .map((r) => ({
-          at: String(r.at),
-          provider: r.provider ? String(r.provider) : '',
-          context: (r.context && typeof r.context === 'object') ? r.context : {},
-          set: (r.set && typeof r.set === 'object') ? r.set : {},
-          restart: Array.isArray(r.restart) ? r.restart.map((x: any) => String(x)) : [],
-        }));
-    } catch (e: any) {
-      this.log(`规则 JSON 解析失败，已忽略：${String(e?.message || e).slice(0, 80)}`);
-      return [];
-    }
+    const { rules, issues } = this.validateRules(String(src.rulesJson || '[]'));
+    if (issues.length) this.log(`规则有 ${issues.length} 个问题：${issues.join('；')}`);
+    return rules;
   }
 
   private async tick(): Promise<void> {

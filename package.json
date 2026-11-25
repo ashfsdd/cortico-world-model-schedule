@@ -1,6 +1,6 @@
 {
   "name": "cortico-world-model-schedule",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Cortico World: 按时间自动切换模型供应商与上下文窗口（22:00 降窗省 token、08:00 切回白天模型）",
   "type": "module",
   "main": "./src/index.ts",
@@ -24,5 +24,13 @@
   "scripts": {
     "test": "node --import file:///C:/Users/Administrator/Coopanion/resources/app/node_modules/tsx/dist/loader.mjs test/smoke.test.ts"
   },
-  "author": "然哥"
+  "author": "然哥",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashfsdd/cortico-world-model-schedule.git"
+  },
+  "homepage": "https://github.com/ashfsdd/cortico-world-model-schedule#readme",
+  "bugs": {
+    "url": "https://github.com/ashfsdd/cortico-world-model-schedule/issues"
+  }
 }
