@@ -55,29 +55,38 @@
 
 ## 规则怎么写
 
-面板「模型分时调度 → 调度规则（JSON）」：
+每条规则是个对象，**只有 `at` 必填**，其余都可选：
+
+| 字段 | 作用 | 例子 |
+| :-- | :-- | :-- |
+| `at` | 时刻（必填） | `"22:00"` |
+| `provider` | 切模型供应商 | `"qianfan"` |
+| `context` | 改上下文窗口 | `{"qianfan": 131072}` |
+| `set` | **改任意配置项**（key 写完整路径） | `{"worlds.qqbot.receiveMode": "hybrid"}` |
+| `restart` | **改完重启哪些插件** | `["qqbot"]` |
+
+### 所以它不只切模型
+
+任何「到点改配置 + 重启」的事都能做：
 
 ```json
 [
-  { "at": "02:00", "provider": "qianfan", "context": { "qianfan": 40000 },
+  { "at": "02:00", "provider": "qianfan", "context": { "qianfan": 131072 },
     "set": { "worlds.qqbot.receiveMode": "hybrid" }, "restart": ["qqbot"] },
-  { "at": "08:00", "provider": "beichen", "context": { "qianfan": 40000 },
-    "set": { "worlds.qqbot.receiveMode": "hybrid" }, "restart": ["qqbot"] },
-  { "at": "20:00",
-    "set": { "worlds.qqbot.receiveMode": "passive" }, "restart": ["qqbot"] },
-  { "at": "22:00", "provider": "qianfan", "context": { "qianfan": 12000 } }
+
+  { "at": "20:00", "set": { "worlds.qqbot.receiveMode": "passive" }, "restart": ["qqbot"] },
+
+  { "at": "23:30", "set": { "worlds.live-cue.enabled": false }, "restart": ["live-cue"] }
 ]
 ```
 
-- `at`：24 小时制 `HH:MM`，精确到分钟（检查间隔 30 秒，不会漏）
-- `provider`：留空 = 不切供应商
-- `context`：`{ 供应商名: 目标窗口 }`，可写多个
-- `set`：顺便改配置项，key 必须是**完整配置路径**（`worlds.qqbot.receiveMode`）。插件会自己去 `/api/config` 里找哪个面板有这个字段，找不到就报「无面板入口」
-- `restart`：改完要重启哪些 world（`["qqbot"]`）。**只在值真的变了才重启**，本来就对就跳过
+第三条就是「凌晨自动关掉弹幕桥」—— 不用守到那个点。
 
-### 为什么改配置要 restart
+### 三个注意
 
-`worlds.qqbot.receiveMode` 这类字段是 qqbot 在启动时读进内存的，改文件不会热更。所以改完要 `POST /api/worlds/restart {"id":"qqbot"}` —— 只重启 qqbot（3–5 秒，Coo 主进程和对话上下文都不动），不用整机重启。
+- **`set` 的 key 必须是完整配置路径**（`GET /api/config` 里能看到的那个层级）
+- **`restart` 会被跳过的情况**：如果目标状态已经满足，插件不重启（幂等）
+- **同一分钟多条会按顺序执行**，后面的能覆盖前面的
 
 ## 三个特性
 

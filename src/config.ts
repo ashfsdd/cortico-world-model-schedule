@@ -64,7 +64,7 @@ const T = {
     enabled: { t: '启用分时调度' },
     checkSec: { t: '检查间隔（秒）', d: '每隔这么久看一次时钟。30 秒够用，别小于 10。' },
     catchUp: { t: '启动时补漏', d: 'Coo 启动时如果已经过了某个时间点，补执行当天最近的一条规则。' },
-    rules: { t: '调度规则（JSON）', d: '数组，每项 { "at": "HH:MM", "provider": "供应商名或空", "context": { "供应商名": 上下文窗口 } }。同一分钟命中多条会按顺序执行。' },
+    rules: { t: '调度规则（JSON）', d: '数组，每项五个字段都可选，至少写一个：\n· at：时刻 "HH:MM"（必填）\n· provider：切到哪个模型供应商\n· context：改上下文窗口，如 {"qianfan": 131072}\n· set：改任意配置项，key 写完整路径，如 {"worlds.qqbot.receiveMode": "hybrid"}\n· restart：改完要重启哪些插件，如 ["qqbot"]\n同一分钟命中多条按顺序执行。' },
   },
   en: {
     title: 'Model schedule',
@@ -72,7 +72,7 @@ const T = {
     enabled: { t: 'Enable schedule' },
     checkSec: { t: 'Check interval (s)', d: 'How often to look at the clock. 30s is fine, do not go below 10.' },
     catchUp: { t: 'Catch up on start', d: 'When Coo starts, run the latest rule of the day that was missed.' },
-    rules: { t: 'Rules (JSON)', d: 'Array of { "at": "HH:MM", "provider": "name or empty", "context": { "name": window } }.' },
+    rules: { t: 'Rules (JSON)', d: 'Array; every field optional except at://n· at: "HH:MM"\n· provider: switch provider\n· context: { "name": window }\n· set: { "worlds.qqbot.receiveMode": "hybrid" } — any full config path\n· restart: ["qqbot"] — plugins to restart after the change' },
   },
 };
 
