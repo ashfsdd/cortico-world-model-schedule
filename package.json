@@ -22,7 +22,8 @@
     "webUiClient": "dist/webui.js"
   },
   "scripts": {
-    "test": "node --import file:///C:/Users/Administrator/Coopanion/resources/app/node_modules/tsx/dist/loader.mjs test/smoke.test.ts"
+    "test": "node --import file:///C:/Users/Administrator/Coopanion/resources/app/node_modules/tsx/dist/loader.mjs test/smoke.test.ts",
+    "prepublishOnly": "npm test"
   },
   "author": "然哥",
   "repository": {
